@@ -1,3 +1,9 @@
 [submodule "VTileEdit/libs/SDL2"]
 	path = VTileEdit/libs/SDL2
 	url = https://github.com/spurious/SDL-mirror.git
+[submodule "VTileEdit/libs/ImGUI"]
+	path = VTileEdit/libs/ImGUI
+	url = https://github.com/ocornut/imgui.git
+[submodule "VTileEdit/libs/ImGUI_SDL2"]
+	path = VTileEdit/libs/ImGUI_SDL2
+	url = https://github.com/Tyyppi77/imgui_sdl.git
