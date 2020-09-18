@@ -6,4 +6,5 @@ FROM gitpod/workspace-full-vnc
 #
 # More information: https://www.gitpod.io/docs/config-docker/
 
-RUN apt install valgrind
+RUN sudo apt update \
+sudo apt install valgrind -y
