@@ -77,9 +77,12 @@ int main(int argc, char* argv[])
 #ifdef _WIN64
 	SDL_Renderer* controls_renderer = SDL_CreateRenderer(controls_window, -1, SDL_RENDERER_SOFTWARE);
 #else
-	SDL_Renderer* controls_renderer = SDL_CreateRenderer(controls_window, -1, SDL_RENDERER_ACCELERATED);
+	SDL_Renderer* controls_renderer = SDL_CreateRenderer(controls_window, -1, SDL_RENDERER_SOFTWARE);
 #endif
-	SDL_Renderer* canvas_renderer = SDL_CreateRenderer(nullptr, -1, SDL_RENDERER_TARGETTEXTURE);
+    if (controls_renderer == nullptr || controls_window == nullptr) {  // This should be if (win == nullptr) {
+    std::cout << SDL_GetError() << std::endl;
+    return 1;
+}
 	ImGui::CreateContext();
 	ImGuiSDL::Initialize(controls_renderer, 800, 600);
 

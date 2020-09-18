@@ -3,4 +3,8 @@ image:
 
 tasks:
   - init: cmake
-    command: mkdir VTileEdit/out && cd VTileEdit/out && cmake .. && make -j16
+    command: cd VTileEdit/out && cmake .. && make -j16
+
+vscode:
+  extensions:
+    - vadimcn.vscode-lldb@1.5.3:vTh/rWhvJ5nQpeAVsD20QA==
