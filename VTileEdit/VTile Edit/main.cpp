@@ -1,4 +1,4 @@
-﻿#include "main.h"
+#include "main.h"
 
 class colour
 {
@@ -67,16 +67,6 @@ void clamp(int& v, int min, int max)
 	}
 }
 
-SDL_Texture** recreateTex(SDL_Renderer** canvas_renderer,int new_height, int new_width)
-{
-	SDL_Texture* texture = SDL_CreateTexture(*canvas_renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, new_width, new_height);
-	{
-		SDL_SetRenderTarget(*canvas_renderer, texture);
-		SDL_SetRenderDrawColor(*canvas_renderer, 0, 0, 0, 255);
-		SDL_RenderClear(*canvas_renderer);
-	}
-	return &texture;
-}
 
 int main(int argc, char* argv[])
 {
@@ -87,7 +77,7 @@ int main(int argc, char* argv[])
 #ifdef _WIN64
 	SDL_Renderer* controls_renderer = SDL_CreateRenderer(controls_window, -1, SDL_RENDERER_SOFTWARE);
 #else
-	SDL_Renderer* controls_renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	SDL_Renderer* controls_renderer = SDL_CreateRenderer(controls_window, -1, SDL_RENDERER_ACCELERATED);
 #endif
 	SDL_Renderer* canvas_renderer = SDL_CreateRenderer(nullptr, -1, SDL_RENDERER_TARGETTEXTURE);
 	ImGui::CreateContext();
@@ -150,9 +140,6 @@ int main(int argc, char* argv[])
 		}
 		clamp(palInd, 0, 255);
 		ImGui::End();
-		ImGui::Begin("Canvas");
-		
-		ImGui::End();
 		ImGui::Render();
 		ImGuiSDL::Render(ImGui::GetDrawData());
 
@@ -166,7 +153,6 @@ int main(int argc, char* argv[])
 
 	SDL_DestroyRenderer(controls_renderer);
 	SDL_DestroyWindow(controls_window);
-
 	ImGui::DestroyContext();
 	return 0;
 }

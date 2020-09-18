@@ -3,4 +3,4 @@ image:
 
 tasks:
   - init: cmake
-    command: cmake run
+    command: mkdir VTileEdit/out && cd VTileEdit/out && cmake .. && make -j16
