@@ -7,4 +7,7 @@
 #include "ImGUI/imgui_sdl.h"
 #include "ImGUI/imgui_impl_sdl.h"
 #include <algorithm>
+#include <ctime>
+#include <ratio>
+#include <chrono>
 // TODO: Reference additional headers your program requires here.

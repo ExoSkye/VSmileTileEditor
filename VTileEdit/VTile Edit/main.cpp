@@ -4,13 +4,34 @@ class colour
 {
 public:
 	float col[4];
+	colour(float _col[4])
+	{
+		for (int i = 0; i < 4; ++i)
+		{
+			col[i] = _col[i];
+		}
+	}
+	colour(float _col)
+	{
+		for (int i = 0; i < 3; ++i)
+		{
+			col[i] = _col;
+		}
+		col[3] = 1.0f;
+	}
 };
 
 typedef std::vector<colour> palette_t;
 
 class bitplane
 {
+public:
 	std::vector<bool> bits;
+	bitplane(int length)
+	{
+		bits.resize(length);
+	}
+	bitplane() = default;
 };
 
 
@@ -24,36 +45,47 @@ public:
 		index = _index;
 		m_Bitplanes = bitplanes;
 	}
+	pixel& operator=(uint8_t newcol)
+	{
+		for (int i = 0; i < m_Bitplanes->size(); i++)
+		{
+			bool bit = newcol >> i & 1;
+			m_Bitplanes->at(i).bits.at(index) = bit;
+		}
+	}
+	uint8_t operator()()
+	{
+		int ret = 0;
+		for (int i = 0; i < m_Bitplanes->size(); i++)
+		{
+			ret += m_Bitplanes->at(i).bits[index] << i;
+		}
+		return ret;
+	}
 
-};
-
-struct vec2
-{
-	int x, y;
 };
 
 class tile
 {
 public:
 	ImVec2 m_Size;
-	std::vector<bitplane> m_Bitplanes;
 	std::vector<pixel> pixels;
-	tile(ImVec2 size, int bpp)
+	tile(ImVec2 size, int bpp, std::vector<bitplane>* bitplanes)
 	{
 		m_Size = size;
-		m_Bitplanes.resize(bpp);
+		bitplanes->resize(bpp);
 		for (int x = 0; x < m_Size.x; x++)
 		{
 			for (int y = 0; y < m_Size.x; y++)
 			{
-				pixel temp(&m_Bitplanes, x * y);
+				pixel temp(bitplanes, x * y);
 				pixels.push_back(temp);
 			}
 		}
 	}
 };
 
-typedef std::vector<tile> tileMap;
+typedef std::vector<tile> tileMap_t;
 
 void clamp(int& v, int min, int max)
 {
@@ -71,29 +103,46 @@ void clamp(int& v, int min, int max)
 int main(int argc, char* argv[])
 {
 	palette_t palette;
-	palette.resize(256);
+	palette.resize(256, colour(0.1f));
+	
+	int width = 16;
+	int height = 16;
+	int zoom = 1;
+	int bpp = 8;
 	SDL_Init(SDL_INIT_EVERYTHING);
+	SDL_Window* canvas_window = SDL_CreateWindow("VTileEdit - Canvas", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1024, 1024, SDL_WINDOW_SHOWN);
 	SDL_Window* controls_window = SDL_CreateWindow("VTileEdit - Controls", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_RESIZABLE);
 #ifdef _WIN64
 	SDL_Renderer* controls_renderer = SDL_CreateRenderer(controls_window, -1, SDL_RENDERER_SOFTWARE);
 #else
-	SDL_Renderer* controls_renderer = SDL_CreateRenderer(controls_window, -1, SDL_RENDERER_SOFTWARE);
+	SDL_Renderer* controls_renderer = SDL_CreateRenderer(controls_window, -1, SDL_RENDERER_ACCELERATED);
 #endif
-    if (controls_renderer == nullptr || controls_window == nullptr) {  // This should be if (win == nullptr) {
-    std::cout << SDL_GetError() << std::endl;
-    return 1;
-}
+	SDL_Renderer* canvas_window_render = SDL_CreateRenderer(canvas_window, -1, SDL_RENDERER_ACCELERATED);
+    if (controls_renderer == nullptr || controls_window == nullptr || canvas_window == nullptr || canvas_window_render == nullptr) {
+		std::cout << SDL_GetError() << std::endl;
+		return 1;
+	}
 	ImGui::CreateContext();
 	ImGuiSDL::Initialize(controls_renderer, 800, 600);
 
+	tileMap_t tileMap;
+	std::vector<bitplane> bitplanes;
+	bitplanes.resize(bpp);
+	for (int i = 0; i < bpp; i++)
+	{
+		bitplanes[i].bits.resize((width * height) * 256);
+	}
+	tileMap.resize(256, tile(ImVec2(width, height), bpp, &bitplanes));
+	
 	bool run = true;
 	int palInd = 0;
-	int width = 16;
-	int height = 16;
-	int bpp = 8;
-	tile curTile(ImVec2(width, height), bpp);
 	while (run)
 	{
+#ifdef _DEBUG
+		using namespace std::chrono;
+
+		high_resolution_clock::time_point t1 = high_resolution_clock::now();
+#endif
 		ImGuiIO& io = ImGui::GetIO();
 
 		int wheel = 0;
@@ -143,6 +192,9 @@ int main(int argc, char* argv[])
 		}
 		clamp(palInd, 0, 255);
 		ImGui::End();
+		ImGui::Begin("Canvas Controls");
+		ImGui::SliderInt("Zoom", &zoom, 1, 4);
+		ImGui::End();
 		ImGui::Render();
 		ImGuiSDL::Render(ImGui::GetDrawData());
 
@@ -150,12 +202,41 @@ int main(int argc, char* argv[])
 
 		SDL_SetRenderDrawColor(controls_renderer, 114, 144, 154, 255);
 		SDL_RenderClear(controls_renderer);
+		SDL_SetRenderDrawColor(canvas_window_render, 128, 128, 128, 255);
+		SDL_RenderClear(canvas_window_render);
+		for (int tile_y = 0; tile_y < 16; tile_y += 1)
+		{
+			for (int tile_x = 0; tile_x < 16; tile_x += 1) {
+				tile curTile = tileMap[tile_x * tile_y];
+				for (int x = 0; x < width; ++x)
+				{
+					for (int y = 0; y < height; ++y)
+					{
+						colour temp = palette[curTile.pixels[x * y]()];
+						SDL_SetRenderDrawColor(canvas_window_render, temp.col[0] * 256, temp.col[1] * 256, temp.col[2] * 256, temp.col[3] * 256);
+						SDL_RenderDrawPoint(canvas_window_render, tile_x*width + x, tile_y*height + y);
+					}
+				}
+			}
+		}
+		
+		SDL_RenderPresent(canvas_window_render);
+#ifdef _DEBUG
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+
+		std::chrono::duration<float, std::milli> fp_ms = t2 - t1;
+
+		printf("Frametime = %f\n", fp_ms.count());
+		printf("Framerate = %f\n", 1000/fp_ms.count());
+#endif
 	}
 
 	ImGuiSDL::Deinitialize();
 
 	SDL_DestroyRenderer(controls_renderer);
 	SDL_DestroyWindow(controls_window);
+	SDL_DestroyRenderer(canvas_window_render);
+	SDL_DestroyWindow(canvas_window);
 	ImGui::DestroyContext();
 	return 0;
 }
